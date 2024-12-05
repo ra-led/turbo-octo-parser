@@ -1,0 +1,31 @@
+version: '3.8'
+services:
+  api_server:
+    build: ./api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
+    depends_on:
+      - rabbitmq
+
+  worker:
+    build: ./worker
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
+    depends_on:
+      - rabbitmq
+
+  rabbitmq:
+    image: 'rabbitmq:3-management'
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+volumes:
+  data:
+  logs:
+
+
