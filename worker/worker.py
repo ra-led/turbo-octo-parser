@@ -1,4 +1,5 @@
 import pika
+import shutil
 import json
 import logging
 import os
@@ -33,9 +34,16 @@ def callback(ch, method, properties, body):
 
         # Save the result
 
-        result_path = os.path.join(RESULT_FOLDER, f"{task_id}.md")
+        TASK_RESULT_FOLDER = RESULT_FOLDER + f'/{task_id}'
+        os.makedirs(TASK_RESULT_FOLDER)
+        result_path = os.path.join(TASK_RESULT_FOLDER, "text.md")
         with open(result_path, 'w') as result_file:
             result_file.write(markdown_content)
+        shutil.move('tmp/pages', TASK_RESULT_FOLDER)
+        shutil.move('tmp/images', TASK_RESULT_FOLDER)
+
+        # Compress result
+        shutil.make_archive(TASK_RESULT_FOLDER+'/result', 'zip', TASK_RESULT_FOLDER)
 
         # Update status to 'completed'
         with open(status_path, 'w') as status_file:

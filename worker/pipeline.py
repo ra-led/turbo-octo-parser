@@ -75,12 +75,12 @@ class LayoutAnalysisStep(PipelineStep):
         )
 
     def process(self, data):
-        conv_result = self.doc_converter.convert("manual.pdf") # previously `convert_single`
+        conv_result = self.doc_converter.convert(data) # previously `convert_single`
 
-        images_dir = Path("images")
+        images_dir = Path("tmp/images")
         images_dir.mkdir(parents=True, exist_ok=True)
 
-        pages_dir = Path("pages")
+        pages_dir = Path("tmp/pages")
         pages_dir.mkdir(parents=True, exist_ok=True)
 
         # Save page images
