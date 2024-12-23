@@ -2,4 +2,4 @@ fastapi
 uvicorn
 aiofiles
 pika
-
+python-multipart
