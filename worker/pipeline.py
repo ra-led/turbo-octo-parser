@@ -280,11 +280,17 @@ class TextToMarkdownStep(PipelineStep):
             item_type = item['type']
             if item_type == 'h':
                 # Get the header level
-                header_level = header_level_map.get(item['id'], 1)
-                print(header_level)
-                prefix = '#' * header_level  # Markdown header prefix
-                markdown_lines.append(f"{prefix} {item.get('text', '')}")
-                print(f"{prefix} {item.get('text', '')}")
+                header_level = header_level_map.get(item['id'],
+                                                    1 if item['fontsize'] > headers_info[0]['fontsize'] 
+                                                    else None
+                                                    )
+                if header_level is None:
+                    markdown_lines.append(item.get('text', ''))
+                else:
+                    print(header_level)
+                    prefix = '#' * header_level  # Markdown header prefix
+                    markdown_lines.append(f"{prefix} {item.get('text', '')}")
+                    print(f"{prefix} {item.get('text', '')}")
             elif item_type == 'p':
                 markdown_lines.append(item.get('text', ''))
             elif item_type == 'li':
