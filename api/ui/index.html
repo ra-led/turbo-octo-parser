@@ -28,6 +28,7 @@
     </div>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
     <script>
+      let states = {}
       let tasks = localStorage.getItem("tasks") 
       if(tasks == null){
         tasks = []
@@ -41,10 +42,15 @@
         }else{
           $("#statuses").html('')
           for(task of tasks){
+            if(Object.keys(states).includes(task)){
+              task_state = states[task]
+            }else{
+              task_state = `<div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Загрузка...</span></div>`
+            }
             $("#statuses").append(`
               <tr data-taskid=`+task+`>
                 <td>`+task+`</td>
-                <td class="task-status"><div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Загрузка...</span></div></td>
+                <td class="task-status">`+task_state+`</td>
                 <td class="task-download"></td>
               </tr>
             `)
@@ -53,17 +59,21 @@
         }
       }
       updateTable()
-      setInterval(updateTable, 3000)
 
       function updateTaskStatus(task){
+        if(Object.keys(states).includes(task) && (states[task] == 'completed' || states[task] == 'failed')){return}
+
+        $("tr[data-taskid='"+task+"'] .task-status").html(`<div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Загрузка...</span></div>`)
         fetch('/status/'+task).then(function(result){
           result.json().then(function(data){
+            states[task] = data['status']
             $("tr[data-taskid='"+task+"'] .task-status").text(data['status'])
             if(data['status'] == 'completed'){
               $("tr[data-taskid='"+task+"'] .task-download").html(
                 '<a href="/result/'+task+'">скачать</a>'
               )
             }
+            setTimeout(function(){updateTaskStatus(task)}, 3000)
           })
         })
       }
