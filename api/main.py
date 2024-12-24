@@ -80,7 +80,7 @@ def get_status(task_id: str):
 
 @app.get("/result/{task_id}")
 def get_result(task_id: str):
-    result_path = os.path.join(RESULT_FOLDER, f"{task_id}/result.zip")
+    result_path = os.path.join(RESULT_FOLDER, f"{task_id}.zip")
     status_path = os.path.join(STATUS_FOLDER, f"{task_id}.status")
 
     if not os.path.exists(status_path):

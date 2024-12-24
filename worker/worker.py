@@ -43,7 +43,7 @@ def callback(ch, method, properties, body):
         shutil.move('images', TASK_RESULT_FOLDER)
 
         # Compress result
-        shutil.make_archive(TASK_RESULT_FOLDER+'/result', 'zip', TASK_RESULT_FOLDER)
+        shutil.make_archive(TASK_RESULT_FOLDER, 'zip', TASK_RESULT_FOLDER)
 
         # Update status to 'completed'
         with open(status_path, 'w') as status_file:
