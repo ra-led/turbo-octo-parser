@@ -100,6 +100,10 @@ def get_result(task_id: str):
 
     return FileResponse(path=result_path, media_type='application/zip', filename=f"{task_id}.zip")
 
+@app.get("/")
+async def read_index():
+    return FileResponse('ui/index.html')
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
