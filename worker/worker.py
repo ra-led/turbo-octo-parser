@@ -39,8 +39,8 @@ def callback(ch, method, properties, body):
         result_path = os.path.join(TASK_RESULT_FOLDER, "text.md")
         with open(result_path, 'w') as result_file:
             result_file.write(markdown_content)
-        shutil.move('tmp/pages', TASK_RESULT_FOLDER)
-        shutil.move('tmp/images', TASK_RESULT_FOLDER)
+        shutil.move('pages', TASK_RESULT_FOLDER)
+        shutil.move('images', TASK_RESULT_FOLDER)
 
         # Compress result
         shutil.make_archive(TASK_RESULT_FOLDER+'/result', 'zip', TASK_RESULT_FOLDER)
