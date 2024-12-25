@@ -19,7 +19,7 @@
 
       <h3>Результаты</h3>
       <table class="table table-stripped table-hover">
-        <thead><th>id</th><th>статус</th><th>скачать результат</th></thead>
+        <thead><th>id</th><th>файл</th><th>статус</th><th>скачать результат</th></thead>
         <tbody id="statuses">
           <tr><td colspan="3"><center>Нет результатов для отображения</center></td></tr>
         </tbody>
@@ -29,22 +29,19 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
     <script>
       let states = {}
-      let tasks = localStorage.getItem("tasks") 
-      if(tasks == null){
-        tasks = []
-      }else{
-        tasks = JSON.parse(tasks)
-      }
+      let tasks = JSON.parse(localStorage.getItem("tasks") ?? '[]')
+      let filenames = JSON.parse(localStorage.getItem("filenames") ?? '{}')
 
       function updateTable(){
         if(tasks.length < 1){
-          $("#statuses").html('<tr><td colspan="3"><center>Нет результатов для отображения</center></td></tr>')
+          $("#statuses").html('<tr><td colspan="4"><center>Нет результатов для отображения</center></td></tr>')
         }else{
           $("#statuses").html('')
           for(task of tasks){
             $("#statuses").append(`
               <tr data-taskid=`+task+`>
                 <td>`+task+`</td>
+                <td class="task-filename">`+(filenames[task] ?? '')+`</td>
                 <td class="task-status"></td>
                 <td class="task-download"></td>
               </tr>
@@ -80,7 +77,9 @@
         fetch('/convert', {method: 'POST', body: form_data}).then(function(result){
           result.json().then(function(data){
             tasks.push(data["task_id"])
+            filenames[data["task_id"]] = file_input.files[0].name
             localStorage.setItem("tasks", JSON.stringify(tasks))
+            localStorage.setItem("filenames", JSON.stringify(filenames))
             updateTable()
           })
         })
