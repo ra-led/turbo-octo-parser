@@ -1,0 +1,2 @@
+levenshtein==0.26.1
+tqdm==4.67.1
