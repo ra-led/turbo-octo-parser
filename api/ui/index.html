@@ -11,8 +11,13 @@
       <h3>Отправить на распознавание</h3>
       <form id="file-form">
         <div class="mb-3">
+          <label for="formModel" class="form-label">Выбрать модель</label>
+          <select class="form-select" id="formModel">
+          </select>
+        </div>
+        <div class="mb-3">
           <label for="formFile" class="form-label">Выбрать файл</label>
-          <input class="form-control" type="file" id="formFile">
+          <input class="form-control" type="file" id="formFile" accept=".pdf">
         </div>
         <button type="submit" class="btn btn-primary form-control">Отправить</button>
       </form><br/>
@@ -31,6 +36,24 @@
       let states = {}
       let tasks = JSON.parse(localStorage.getItem("tasks") ?? '[]')
       let filenames = JSON.parse(localStorage.getItem("filenames") ?? '{}')
+      let models = {}
+
+      fetch('/models').then(function(response){
+        response.json().then(function(models_data){
+          models = models_data
+          $("#formModel").html("")
+          for(model of Object.keys(models)){
+            extensions = models[model].join(', ')
+            $("#formModel").append("<option value='"+model+"'>"+model+" ("+extensions+")</option>")
+          }
+          $("#formModel").val('turbo_octo_parser')
+        })
+      })
+
+      $("#formModel").on('change', function(){
+        accept = models[$("#formModel").val()].map(function(ext){return '.'+ext}).join(',')
+        $("#formFile").attr('accept', accept)
+      })
 
       function updateTable(){
         if(tasks.length < 1){
@@ -73,6 +96,7 @@
       $("#file-form").on('submit', function(){
         file_input = $("#formFile")[0]
         form_data = new FormData()
+        form_data.append("model", $("#formModel").val())
         form_data.append("file", file_input.files[0])
         fetch('/convert', {method: 'POST', body: form_data}).then(function(result){
           result.json().then(function(data){
