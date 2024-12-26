@@ -12,6 +12,7 @@ import argparse
 import json
 import os
 import time
+from dataclasses import dataclass
 from typing import NamedTuple, List, Optional
 from zipfile import ZipFile
 
@@ -34,10 +35,12 @@ STATUS_HANDLER = "/status"
 RESULT_HANDLER = "/result"
 
 
-class Header(NamedTuple):
+@dataclass
+class Header:
     """Раздел документа."""
     level: int
     text: str
+    to_skip: bool = False
 
 
 class ParseResult(NamedTuple):
@@ -174,14 +177,15 @@ def count_quantity_metrics(expected_quantity: int, actual_quantity: int) -> floa
 
 def find_expected_header_in_actual_headers(
     expected_header: Header, actual_headers: List[Header]
-) -> Optional[Header]:
+) -> tuple[Optional[Header], List[Header]]:
     """Поиск раздела из эталонной разметки среди разделов результата парсинга pdf-документа."""
-    result = None
+    found_header = None
     for actual_header in actual_headers:
-        if is_texts_similar(expected_header.text, actual_header.text):
-            result = actual_header
+        if not actual_header.to_skip and is_texts_similar(expected_header.text, actual_header.text):
+            found_header = actual_header
+            actual_header.to_skip = True
             break
-    return result
+    return found_header, actual_headers
 
 
 def count_found_headers_quantity(
@@ -190,7 +194,7 @@ def count_found_headers_quantity(
     """Кол-во найденных разделов документа."""
     found_headers = 0
     for expected_header in expected_headers:
-        if find_expected_header_in_actual_headers(expected_header, actual_headers) is not None:
+        if find_expected_header_in_actual_headers(expected_header, actual_headers)[0] is not None:
             found_headers +=1
     return found_headers
 
@@ -239,7 +243,7 @@ def count_right_hierarchy_headers_percentage(
         expected_header = expected_headers[idx]
         prev_expected_headers = expected_headers[:idx]
         expected_header_parent = get_parent(expected_header, prev_expected_headers)
-        actual_header = find_expected_header_in_actual_headers(expected_header, actual_headers)
+        actual_header, _ = find_expected_header_in_actual_headers(expected_header, actual_headers)
         if actual_header is not None:
             total_hierarchy_quantity += 1
             actual_header_idx = actual_headers.index(actual_header)
@@ -272,11 +276,11 @@ def process_pdf_file(pdf_file: str) -> Optional[Metrics]:
     metrics = Metrics(
         found_headers_percentage=count_found_headers_percentage(
             expected_headers=expected_result.headers,
-            actual_headers=actual_result.headers,
+            actual_headers=actual_result.headers[:],
         ),
         right_hierarchy_headers_percentage=count_right_hierarchy_headers_percentage(
             expected_headers=expected_result.headers,
-            actual_headers=actual_result.headers,
+            actual_headers=actual_result.headers[:],
         ),
         found_tables_percentage=count_quantity_metrics(
             expected_quantity=expected_result.tables,
