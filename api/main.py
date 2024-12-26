@@ -80,7 +80,7 @@ def get_status(task_id: str):
 
 @app.get("/result/{task_id}")
 def get_result(task_id: str):
-    result_path = os.path.join(RESULT_FOLDER, f"{task_id}.md")
+    result_path = os.path.join(RESULT_FOLDER, f"{task_id}.zip")
     status_path = os.path.join(STATUS_FOLDER, f"{task_id}.status")
 
     if not os.path.exists(status_path):
@@ -98,7 +98,7 @@ def get_result(task_id: str):
         logger.error(f"Result file missing for task {task_id}")
         raise HTTPException(status_code=500, detail="Result file not found")
 
-    return FileResponse(path=result_path, media_type='text/plain', filename=f"{task_id}.md")
+    return FileResponse(path=result_path, media_type='application/zip', filename=f"{task_id}.zip")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
