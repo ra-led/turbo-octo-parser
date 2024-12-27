@@ -3,7 +3,7 @@ import shutil
 import json
 import logging
 import os
-from pipeline import run_pipeline
+import importlib
 
 # Configure logging
 logger = logging.getLogger("worker")
@@ -16,11 +16,32 @@ logger.addHandler(handler)
 UPLOAD_FOLDER = '/data/uploads'
 RESULT_FOLDER = '/data/results'
 STATUS_FOLDER = '/data/status'
+MODLIST_FILE = '/data/models'
+
+PIPELINES = {}
+
+for file_name in os.listdir('pipelines'):
+    if not file_name.endswith('.py'):
+        continue
+    module_name = os.path.splitext(file_name)[0]
+    module = importlib.import_module('pipelines.'+module_name)
+    PIPELINES[module_name] = module
+
+with open(MODLIST_FILE, 'w') as f:
+    models = {}
+    for model in PIPELINES.keys():
+        models[model] = PIPELINES[model].ALLOWED_FORMATS
+    print("models:", models)
+    json.dump(models, f)
+
 
 def callback(ch, method, properties, body):
     message = json.loads(body)
     task_id = message['task_id']
     pdf_path = message['pdf_path']
+    model_name = message.get('model', list(PIPELINES.keys())[0])
+    print("Using model", model_name)
+    pipeline = PIPELINES[model_name]
     logger.info(f"Worker received task {task_id}")
 
     status_path = os.path.join(STATUS_FOLDER, f"{task_id}.status")
@@ -30,7 +51,7 @@ def callback(ch, method, properties, body):
 
     try:
         # Run the processing pipeline
-        markdown_content = run_pipeline(pdf_path)
+        markdown_content = pipeline.run_pipeline(pdf_path)
 
         # Save the result
 
@@ -39,8 +60,10 @@ def callback(ch, method, properties, body):
         result_path = os.path.join(TASK_RESULT_FOLDER, "text.md")
         with open(result_path, 'w') as result_file:
             result_file.write(markdown_content)
-        shutil.move('pages', TASK_RESULT_FOLDER)
-        shutil.move('images', TASK_RESULT_FOLDER)
+        if os.path.exists('pages'):
+            shutil.move('pages', TASK_RESULT_FOLDER)
+        if os.path.exists('images'):
+            shutil.move('images', TASK_RESULT_FOLDER)
 
         # Compress result
         shutil.make_archive(TASK_RESULT_FOLDER, 'zip', TASK_RESULT_FOLDER)
@@ -57,9 +80,11 @@ def callback(ch, method, properties, body):
     finally:
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
+
 def main():
     # Setup RabbitMQ connection
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
+    connection = pika.BlockingConnection(
+            pika.ConnectionParameters(host='rabbitmq', heartbeat=360))
     channel = connection.channel()
     channel.queue_declare(queue='pdf_tasks')
     channel.basic_qos(prefetch_count=1)
@@ -67,6 +92,6 @@ def main():
     logger.info("Worker started consuming tasks")
     channel.start_consuming()
 
+
 if __name__ == '__main__':
     main()
-

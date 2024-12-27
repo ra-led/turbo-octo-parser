@@ -317,6 +317,9 @@ class TextToMarkdownStep(PipelineStep):
         return self.convert_annotations_to_markdown(data)
 
 
+ALLOWED_FORMATS = ['pdf']
+
+
 def run_pipeline(pdf_path):
     data = pdf_path  # Starting data is the path to the PDF
 
