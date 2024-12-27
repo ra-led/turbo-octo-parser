@@ -4,8 +4,13 @@
 1. cd metrics
 2. pip install -r requirements.txt
 3. закинуть в папку test_data все тестовые документы вместе с разметкой
-   (по аналогии с примером example.pdf и example.json)
-4. python3 metrics.py --api-url <адрес АПИ конвертера>
+   (по аналогии с примером example.pdf и example.json). Если для pdf-файла
+   уже есть результат конвертации md-файл, то его также закидываем в папку
+   test_data (для файла example.pdf из примера md-файл будет называться example.md)
+4. Если для конвертации используется наша АПИ (пайплайн), то скрипт запускается так:
+      python3 metrics.py --api-url <адрес АПИ конвертера>
+   Если для pdf-файла уже имеется сконвертированный md-файл, то скрипт запускается так:
+      python3 metrics.py
 """
 
 import argparse
@@ -26,13 +31,17 @@ test_data_dir = os.path.join(current_dir, "test_data")
 
 
 parser = argparse.ArgumentParser(description='Process an API URL for converting pdf to md')
-parser.add_argument('--api-url', type=str, help='API URL of converter', required=True)
+parser.add_argument('--api-url', type=str, help='API URL of converter')
 args = parser.parse_args()
 
 API_URL = args.api_url
 CONVERT_HANDLER = "/convert"
 STATUS_HANDLER = "/status"
 RESULT_HANDLER = "/result"
+
+
+class MDFileNotFound(FileNotFoundError):
+    """Срабатывает, если в папке test_data для pdf-file нет md-файла."""
 
 
 @dataclass
@@ -106,8 +115,8 @@ def get_md_content_from_zip_archive(zip_: bytes) -> str:
     return md_content
 
 
-def convert_pdf(pdf_file: str) -> str:
-    """На входе путь до файла на выходе содержимое полученного markdown-файла."""
+def convert_with_our_api(pdf_file: str) -> str:
+    """Конвертация pdf-файла через наше АПИ (пайплайн)."""
     with open(pdf_file, "rb") as frb:
         multipart_form_data = {"file": frb}
         r = requests.post(API_URL + CONVERT_HANDLER, files=multipart_form_data)
@@ -125,6 +134,26 @@ def convert_pdf(pdf_file: str) -> str:
         return md_content
     else:
         return ""
+
+
+def get_content_from_already_converted_md(pdf_file: str) -> str:
+    """Считывание содержимого сконвертированного результата из уже имеющегося md-файла."""
+    md_file = pdf_file.rstrip(".pdf") + ".md"
+    try:
+        with open(md_file, "r", encoding="utf-8") as fr:
+            md_content = fr.read().strip()
+    except FileNotFoundError:
+        raise MDFileNotFound(f"В папке '{test_data_dir}' для pdf-файла '{pdf_file}' нет md-файла {md_file}")
+    return md_content
+
+
+def get_converted_md_content(pdf_file: str) -> str:
+    """На входе путь до файла на выходе содержимое полученного markdown-файла."""
+    if API_URL:
+        md_content = convert_with_our_api(pdf_file)
+    else:
+        md_content = get_content_from_already_converted_md(pdf_file)
+    return md_content
 
 
 def str_to_header(markdown_row: str) -> Header:
@@ -177,10 +206,12 @@ def is_texts_similar(text1: str, text2: str) -> bool:
 
 def count_quantity_metrics(expected_quantity: int, actual_quantity: int) -> float:
     """Метрика количества найденных таблиц или изображений."""
-    if actual_quantity <= expected_quantity:
+    if actual_quantity < expected_quantity:
         result = actual_quantity/expected_quantity
-    else:
+    elif actual_quantity > expected_quantity:
         result = expected_quantity/actual_quantity
+    else:
+        result = 1
     return round(result, 2)
 
 
@@ -280,7 +311,11 @@ def process_pdf_file(pdf_file: str) -> Optional[Metrics]:
     expected_result = get_expected_result(pdf_file)
     if expected_result is None:
         return None
-    md_content = convert_pdf(pdf_file)
+    try:
+        md_content = get_converted_md_content(pdf_file)
+    except MDFileNotFound as err:
+        print(err, "\n")
+        return None
     actual_result = get_actual_result(md_content)
     metrics = Metrics(
         found_headers_percentage=count_found_headers_percentage(
