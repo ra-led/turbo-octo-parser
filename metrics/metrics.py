@@ -352,7 +352,7 @@ def main() -> None:
     metrics_dict["total"]["Метрика найденных таблиц документа"] = 0
     metrics_dict["total"]["Метрика найденных изображений документа"] = 0
 
-    pdf_files_in_test_data_dir = [file for file in os.listdir(test_data_dir) if file.endswith(".pdf")]
+    pdf_files_in_test_data_dir = sorted([file for file in os.listdir(test_data_dir) if file.endswith(".pdf")])
     for file in tqdm(pdf_files_in_test_data_dir):
         if file.endswith(".pdf"):
             pdf_file = os.path.join(test_data_dir, file)
