@@ -138,7 +138,7 @@ def convert_with_our_api(pdf_file: str) -> str:
 
 def get_content_from_already_converted_md(pdf_file: str) -> str:
     """Считывание содержимого сконвертированного результата из уже имеющегося md-файла."""
-    md_file = pdf_file.rstrip(".pdf") + ".md"
+    md_file = pdf_file.rsplit(".pdf", 1)[0] + ".md"
     try:
         with open(md_file, "r", encoding="utf-8") as fr:
             md_content = fr.read().strip()
@@ -176,7 +176,7 @@ def get_actual_result(md_content: str) -> ParseResult:
 
 def get_expected_result(pdf_file: str) -> Optional[ParseResult]:
     """Получение ожидаемого результата для указанного pdf-документа."""
-    json_file = pdf_file.rstrip(".pdf") + ".json"
+    json_file = pdf_file.rsplit(".pdf", 1)[0] + ".json"
     try:
         with open(json_file, "r", encoding="utf-8") as fr:
             try:
