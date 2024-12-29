@@ -354,24 +354,23 @@ def main() -> None:
 
     pdf_files_in_test_data_dir = sorted([file for file in os.listdir(test_data_dir) if file.endswith(".pdf")])
     for file in tqdm(pdf_files_in_test_data_dir):
-        if file.endswith(".pdf"):
-            pdf_file = os.path.join(test_data_dir, file)
-            metrics_dict[pdf_file] = dict()
-            pdf_metrics = process_pdf_file(pdf_file)
-            if pdf_metrics is not None:
-                metrics_dict[pdf_file]["Доля найденных разделов документа"] = pdf_metrics.found_headers_percentage
-                metrics_dict[pdf_file]["Доля верно определенных иерархий разделов документа"] = pdf_metrics.right_hierarchy_headers_percentage
-                metrics_dict[pdf_file]["Метрика найденных таблиц документа"] = pdf_metrics.found_tables_percentage
-                metrics_dict[pdf_file]["Метрика найденных изображений документа"] = pdf_metrics.found_images_percentage
+        pdf_file = os.path.join(test_data_dir, file)
+        metrics_dict[pdf_file] = dict()
+        pdf_metrics = process_pdf_file(pdf_file)
+        if pdf_metrics is not None:
+            metrics_dict[pdf_file]["Доля найденных разделов документа"] = pdf_metrics.found_headers_percentage
+            metrics_dict[pdf_file]["Доля верно определенных иерархий разделов документа"] = pdf_metrics.right_hierarchy_headers_percentage
+            metrics_dict[pdf_file]["Метрика найденных таблиц документа"] = pdf_metrics.found_tables_percentage
+            metrics_dict[pdf_file]["Метрика найденных изображений документа"] = pdf_metrics.found_images_percentage
 
-                metrics_dict["total"]["Доля найденных разделов документа"] = \
-                    metrics_dict["total"]["Доля найденных разделов документа"] + pdf_metrics.found_headers_percentage
-                metrics_dict["total"]["Доля верно определенных иерархий разделов документа"] = \
-                    metrics_dict["total"]["Доля верно определенных иерархий разделов документа"] + pdf_metrics.right_hierarchy_headers_percentage
-                metrics_dict["total"]["Метрика найденных таблиц документа"] = \
-                    metrics_dict["total"]["Метрика найденных таблиц документа"] + pdf_metrics.found_tables_percentage
-                metrics_dict["total"]["Метрика найденных изображений документа"] = \
-                    metrics_dict["total"]["Метрика найденных изображений документа"] + pdf_metrics.found_images_percentage
+            metrics_dict["total"]["Доля найденных разделов документа"] = \
+                metrics_dict["total"]["Доля найденных разделов документа"] + pdf_metrics.found_headers_percentage
+            metrics_dict["total"]["Доля верно определенных иерархий разделов документа"] = \
+                metrics_dict["total"]["Доля верно определенных иерархий разделов документа"] + pdf_metrics.right_hierarchy_headers_percentage
+            metrics_dict["total"]["Метрика найденных таблиц документа"] = \
+                metrics_dict["total"]["Метрика найденных таблиц документа"] + pdf_metrics.found_tables_percentage
+            metrics_dict["total"]["Метрика найденных изображений документа"] = \
+                metrics_dict["total"]["Метрика найденных изображений документа"] + pdf_metrics.found_images_percentage
 
     pdfs_quantity = len([item for item in metrics_dict.values() if item != {}]) - 1
     if pdfs_quantity != 0:
