@@ -176,7 +176,11 @@ def get_actual_result(md_content: str) -> ParseResult:
 
 def get_expected_result(pdf_file: str) -> Optional[ParseResult]:
     """Получение ожидаемого результата для указанного pdf-документа."""
-    json_file = pdf_file.rsplit(".pdf", 1)[0] + ".json"
+    document_name = pdf_file.rsplit(".pdf", 1)[0]
+    if document_name.endswith("(image)"):
+        json_file = document_name.rsplit("(image)", 1)[0].strip() + ".json"
+    else:
+        json_file = document_name + ".json"
     try:
         with open(json_file, "r", encoding="utf-8") as fr:
             try:
@@ -352,12 +356,37 @@ def main() -> None:
     metrics_dict["total"]["Метрика найденных таблиц документа"] = 0
     metrics_dict["total"]["Метрика найденных изображений документа"] = 0
 
+    metrics_dict["total (text layer)"] = dict()
+    metrics_dict["total (text layer)"]["Доля найденных разделов документа"] = 0
+    metrics_dict["total (text layer)"]["Доля верно определенных иерархий разделов документа"] = 0
+    metrics_dict["total (text layer)"]["Метрика найденных таблиц документа"] = 0
+    metrics_dict["total (text layer)"]["Метрика найденных изображений документа"] = 0
+
+    metrics_dict["total (image)"] = dict()
+    metrics_dict["total (image)"]["Доля найденных разделов документа"] = 0
+    metrics_dict["total (image)"]["Доля верно определенных иерархий разделов документа"] = 0
+    metrics_dict["total (image)"]["Метрика найденных таблиц документа"] = 0
+    metrics_dict["total (image)"]["Метрика найденных изображений документа"] = 0
+
+    metrics_dict["total (scan)"] = dict()
+    metrics_dict["total (scan)"]["Доля найденных разделов документа"] = 0
+    metrics_dict["total (scan)"]["Доля верно определенных иерархий разделов документа"] = 0
+    metrics_dict["total (scan)"]["Метрика найденных таблиц документа"] = 0
+    metrics_dict["total (scan)"]["Метрика найденных изображений документа"] = 0
+
     pdf_files_in_test_data_dir = sorted([file for file in os.listdir(test_data_dir) if file.endswith(".pdf")])
     for file in tqdm(pdf_files_in_test_data_dir):
         pdf_file = os.path.join(test_data_dir, file)
         metrics_dict[pdf_file] = dict()
         pdf_metrics = process_pdf_file(pdf_file)
         if pdf_metrics is not None:
+            if pdf_file.endswith("(image).pdf"):
+                pdf_type = "(image)"
+            elif pdf_file.endswith("(scan).pdf"):
+                pdf_type = "(scan)"
+            else:
+                pdf_type = "(text layer)"
+
             metrics_dict[pdf_file]["Доля найденных разделов документа"] = pdf_metrics.found_headers_percentage
             metrics_dict[pdf_file]["Доля верно определенных иерархий разделов документа"] = pdf_metrics.right_hierarchy_headers_percentage
             metrics_dict[pdf_file]["Метрика найденных таблиц документа"] = pdf_metrics.found_tables_percentage
@@ -372,7 +401,30 @@ def main() -> None:
             metrics_dict["total"]["Метрика найденных изображений документа"] = \
                 metrics_dict["total"]["Метрика найденных изображений документа"] + pdf_metrics.found_images_percentage
 
-    pdfs_quantity = len([item for item in metrics_dict.values() if item != {}]) - 1
+            metrics_dict[f"total {pdf_type}"]["Доля найденных разделов документа"] = \
+                metrics_dict[f"total {pdf_type}"]["Доля найденных разделов документа"] + pdf_metrics.found_headers_percentage
+            metrics_dict[f"total {pdf_type}"]["Доля верно определенных иерархий разделов документа"] = \
+                metrics_dict[f"total {pdf_type}"]["Доля верно определенных иерархий разделов документа"] + pdf_metrics.right_hierarchy_headers_percentage
+            metrics_dict[f"total {pdf_type}"]["Метрика найденных таблиц документа"] = \
+                metrics_dict[f"total {pdf_type}"]["Метрика найденных таблиц документа"] + pdf_metrics.found_tables_percentage
+            metrics_dict[f"total {pdf_type}"]["Метрика найденных изображений документа"] = \
+                metrics_dict[f"total {pdf_type}"]["Метрика найденных изображений документа"] + pdf_metrics.found_images_percentage
+
+    pdfs_quantity = len([item for item in metrics_dict.values() if item != {}]) - 4
+    image_pdfs_quantity = len(
+        [
+            pdf_file for pdf_file in pdf_files_in_test_data_dir
+            if "(image).pdf" in pdf_file and metrics_dict[os.path.join(test_data_dir, pdf_file)] != {}
+        ]
+    )
+    scan_pdfs_quantity = len(
+        [
+            pdf_file for pdf_file in pdf_files_in_test_data_dir
+            if "(scan).pdf" in pdf_file and metrics_dict[os.path.join(test_data_dir, pdf_file)] != {}
+        ]
+    )
+    text_layer_pdfs_quantity = pdfs_quantity - image_pdfs_quantity - scan_pdfs_quantity
+
     if pdfs_quantity != 0:
         metrics_dict["total"]["Доля найденных разделов документа"] = \
             metrics_dict["total"]["Доля найденных разделов документа"] / pdfs_quantity
@@ -384,6 +436,43 @@ def main() -> None:
             metrics_dict["total"]["Метрика найденных изображений документа"] / pdfs_quantity
     else:
         metrics_dict["total"] = dict()
+
+    if text_layer_pdfs_quantity != 0:
+        metrics_dict["total (text layer)"]["Доля найденных разделов документа"] = \
+            metrics_dict["total (text layer)"]["Доля найденных разделов документа"] / text_layer_pdfs_quantity
+        metrics_dict["total (text layer)"]["Доля верно определенных иерархий разделов документа"] = \
+            metrics_dict["total (text layer)"]["Доля верно определенных иерархий разделов документа"] / text_layer_pdfs_quantity
+        metrics_dict["total (text layer)"]["Метрика найденных таблиц документа"] = \
+            metrics_dict["total (text layer)"]["Метрика найденных таблиц документа"] / text_layer_pdfs_quantity
+        metrics_dict["total (text layer)"]["Метрика найденных изображений документа"] = \
+            metrics_dict["total (text layer)"]["Метрика найденных изображений документа"] / text_layer_pdfs_quantity
+    else:
+        metrics_dict["total (text layer)"] = dict()
+
+    if image_pdfs_quantity != 0:
+        metrics_dict["total (image)"]["Доля найденных разделов документа"] = \
+            metrics_dict["total (image)"]["Доля найденных разделов документа"] / image_pdfs_quantity
+        metrics_dict["total (image)"]["Доля верно определенных иерархий разделов документа"] = \
+            metrics_dict["total (image)"]["Доля верно определенных иерархий разделов документа"] / image_pdfs_quantity
+        metrics_dict["total (image)"]["Метрика найденных таблиц документа"] = \
+            metrics_dict["total (image)"]["Метрика найденных таблиц документа"] / image_pdfs_quantity
+        metrics_dict["total (image)"]["Метрика найденных изображений документа"] = \
+            metrics_dict["total (image)"]["Метрика найденных изображений документа"] / image_pdfs_quantity
+    else:
+        metrics_dict["total (image)"] = dict()
+
+    if scan_pdfs_quantity != 0:
+        metrics_dict["total (scan)"]["Доля найденных разделов документа"] = \
+            metrics_dict["total (scan)"]["Доля найденных разделов документа"] / scan_pdfs_quantity
+        metrics_dict["total (scan)"]["Доля верно определенных иерархий разделов документа"] = \
+            metrics_dict["total (scan)"]["Доля верно определенных иерархий разделов документа"] / scan_pdfs_quantity
+        metrics_dict["total (scan)"]["Метрика найденных таблиц документа"] = \
+            metrics_dict["total (scan)"]["Метрика найденных таблиц документа"] / scan_pdfs_quantity
+        metrics_dict["total (scan)"]["Метрика найденных изображений документа"] = \
+            metrics_dict["total (scan)"]["Метрика найденных изображений документа"] / scan_pdfs_quantity
+    else:
+        metrics_dict["total (scan)"] = dict()
+
     pretty_print(metrics_dict)
 
 
